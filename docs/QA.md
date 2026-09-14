@@ -18,3 +18,5 @@ Dữ liệu trường lưu JSONB dùng chung một bản ghi học liệu và b�
 - Browser trên Vercel Preview: giáo viên sửa bài, thêm tiết khoá, soạn HTML, lưu; học sinh làm củng cố 10/10, hoàn thành 1/2 tiết, không đọc được tiết khoá; giáo viên xem đúng điểm cao nhất và 1/2 tiến độ.
 - Sửa xung đột CSS `aside`/`header` cũ với menu lộ trình và phần đầu bài.
 - Kiểm thử adapter dùng HTTP giả lập, không thay thế kiểm thử Supabase thật. SQL migration và RLS chưa thực thi trên project Supabase do chưa đăng nhập.
+
+- Khắc phục lỗi runtime Vercel ERR_REQUIRE_ESM do sanitize-html 2.17.7 gọi htmlparser2 12 qua require. Ghim sanitize-html 2.17.0 dùng parser CommonJS; chạy lại 27 kiểm thử với --no-experimental-require-module để tái hiện môi trường server.
