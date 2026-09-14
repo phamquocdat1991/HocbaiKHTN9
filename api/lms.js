@@ -12,7 +12,7 @@ export default async function handler(req,res){res.setHeader('Cache-Control','no
 const e=config();const configured=isConfigured();if(req.method==='GET')return res.status(200).json({configured,provider:'supabase',url:configured?e.url:null,apiKey:configured?e.key:null,aiConfigured:!!process.env.GEMINI_API_KEY});if(req.method!=='POST')return res.status(405).json({error:'Phương thức không hỗ trợ.'});if(!configured)throw fail(503,'Chưa kết nối Supabase. Em có thể dùng chế độ trải nghiệm.');
 const raw=typeof req.body==='string'?JSON.parse(req.body):req.body; if(JSON.stringify(raw).length>2000000)throw fail(413,'Dữ liệu gửi quá lớn.');const {action,payload:p={}}=raw||{};
 const bearer=req.headers.authorization?.replace(/^Bearer /,'');if(!bearer)throw fail(401,'Cần đăng nhập.');const identity=await lookupIdentity(bearer);
-const admin=identity.emailVerified&&String(process.env.ADMIN_EMAIL||'').toLowerCase()===identity.email?.toLowerCase();
+const admin=identity.emailVerified&&String(process.env.ADMIN_EMAIL||'phamquocdat1991@gmail.com').toLowerCase()===identity.email?.toLowerCase();
 let [sd,ud]=await Promise.all([read('school/main'),read('users/'+identity.localId)]);let s=sd?.value||initialSchool(),u=ud?.value||newUser(identity.localId,identity.displayName||identity.email.split('@')[0]);u.isAdmin=!!admin;u.email=identity.email;u.role=admin||ud?.value.role==='teacher'?'teacher':'student';const teacher=u.role==='teacher';
 if(action==='state'){if(!sd||!ud)await commit([...(!sd?[{path:'school/main',value:s,old:sd}]:[]),...(!ud?[{path:'users/'+u.id,value:u,old:ud}]:[])]);return res.status(200).json({school:sanitize(s,u),user:publicUser(u),users:teacher?await allUsers():[]})}
 
