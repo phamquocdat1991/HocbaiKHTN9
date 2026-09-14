@@ -1,6 +1,6 @@
 # Học bài KHTN 9 — Kết nối tri thức với cuộc sống
 
-App độc lập, kế thừa chức năng của Học bài KHTN 6. React + Vite, API Vercel, Firebase Authentication/Firestore, Gemini phía máy chủ.
+App độc lập, kế thừa chức năng của Học bài KHTN 6. React + Vite, API Vercel, Supabase Auth/Postgres, Gemini phía máy chủ.
 
 ## Học liệu
 
@@ -20,4 +20,7 @@ Vercel: framework Vite, build `npm run build`, output `dist`, Node 24. API `/api
 
 [Hướng dẫn kết nối](docs/SETUP.md) · [Học liệu và nguồn đối chiếu](docs/CURRICULUM.md) · [Kiểm thử](docs/QA.md) · [Đề xuất chưa triển khai](docs/PROPOSALS.md).
 
-Demo dùng dữ liệu trình duyệt riêng của KHTN 9. Chưa có cấu hình Firebase/Gemini cho lớp thật. Không dùng chung project Firebase với lớp 6 vì cấu trúc hiện tại sử dụng school/main. Không đưa private key vào repository.
+Demo dùng dữ liệu trình duyệt riêng của KHTN 9. Cloud đã chuyển sang Supabase; cần cài migration và cấu hình biến môi trường theo [SETUP](docs/SETUP.md). Không đưa khóa service_role vào repository. Chưa xác nhận kết nối cloud thật.
+
+## Nâng cấp 14/09/2026
+Quản lý nhiều tiết/bài; mở/khoá; soạn thảo định dạng/preview/HTML; video, slide và tài liệu bổ sung; củng cố với ngưỡng đạt và lượt làm; tiến độ từng tiết. Xem [đối chiếu tham chiếu](docs/UPGRADE-20260914.md).

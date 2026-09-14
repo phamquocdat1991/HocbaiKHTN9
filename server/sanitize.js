@@ -1,0 +1,2 @@
+import sanitize from 'sanitize-html';
+export const sanitizeHTML=html=>sanitize(html,{allowedTags:['p','div','span','br','h2','h3','h4','strong','b','em','i','u','s','ul','ol','li','blockquote','table','thead','tbody','tr','th','td','a','hr','sub','sup'],allowedAttributes:{a:['href'],td:['colspan','rowspan'],th:['colspan','rowspan'],'*':['style']},allowedSchemes:['https'],allowProtocolRelative:false,allowedStyles:{'*':{'color':[/^#[0-9a-f]{3,8}$/i,/^rgb\(\d+,\s*\d+,\s*\d+\)$/],'background-color':[/^#[0-9a-f]{3,8}$/i],'text-align':[/^(left|center|right)$/]}}});
