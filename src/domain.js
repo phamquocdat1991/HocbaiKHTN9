@@ -1,4 +1,4 @@
-import {periodsOf,validatePeriods,learningAction} from './learning.js';
+import {periodsOf,validatePeriods,learningAction,calculateLessonProgress} from './learning.js';
 import {games} from './content.js';
 export const dayKey=(date=new Date())=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
 export function newUser(id,name,classId='',role='student'){return {id,name,classId,role,progress:{completed:[],studySeconds:0,activeDates:[],gameWins:[]},attempts:[],submissions:[]}}
@@ -9,8 +9,8 @@ const str=(x,max=200)=>{insist(typeof x==='string'&&x.trim().length>0&&x.length<
 export function mutate(school,user,action,p={},now=Date.now()){
 const s=structuredClone(school),u=structuredClone(user);const teacher=u.role==='teacher';
 const active=()=>{const d=dayKey(new Date(now));if(!u.progress.activeDates.includes(d))u.progress.activeDates.push(d)};
-if(['periodQuiz','periodComplete','periodStudy'].includes(action)){learningAction(s,u,action,p,now);active()}
-else if(action==='complete'){const lesson=s.lessons.find(l=>l.id===p.id);insist(lesson,'Không tìm thấy bài học.');insist(periodsOf(lesson).every(t=>u.progress.periods?.[lesson.id+'/'+t.id]?.completed),'Hãy hoàn thành các tiết học trước.');if(!u.progress.completed.includes(p.id))u.progress.completed.push(p.id);active()}
+if(['periodQuiz','periodComplete','periodStudy','periodMediaComplete'].includes(action)){learningAction(s,u,action,p,now);active()}
+else if(action==='complete'){const lesson=s.lessons.find(l=>l.id===p.id);insist(lesson,'Không tìm thấy bài học.');const prog=calculateLessonProgress(u,lesson,s);insist(prog.totalPercent>=100 || periodsOf(lesson).every(t=>u.progress.periods?.[lesson.id+'/'+t.id]?.completed),'Hãy hoàn thành media và bài củng cố của bài học.');if(!u.progress.completed.includes(p.id))u.progress.completed.push(p.id);active()}
 else if(action==='study'){insist(Number.isFinite(p.seconds)&&p.seconds>=0&&p.seconds<=60,'Thời gian không hợp lệ.');u.progress.studySeconds+=p.seconds;active()}
 else if(action==='profile'){u.name=str(p.name,80)}
 else if(action==='join'){const c=s.classes.find(c=>c.code===String(p.code).trim().toUpperCase());insist(c,'Mã lớp không đúng.');u.classId=c.id}
