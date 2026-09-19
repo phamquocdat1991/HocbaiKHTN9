@@ -1,6 +1,6 @@
 import React,{useState,useEffect,useRef} from 'react';
 import {cleanHTML} from './html.js';
-import {Check,Lock,PlayCircle,FileText,ExternalLink,Maximize,Minimize,Presentation,Globe,CheckCircle2,Sparkles,Film,RotateCcw} from 'lucide-react';
+import {Check,Lock,PlayCircle,FileText,ExternalLink,Maximize,Minimize,Presentation,Globe,CheckCircle2,Sparkles,Film,RotateCcw,Lightbulb,Eye,EyeOff} from 'lucide-react';
 import {useApp} from './store.jsx';
 import {periodsOf,periodQuestions,periodRecord,mediaSource,safeUrl,calculateLessonProgress} from './learning.js';
 
@@ -87,10 +87,10 @@ export function Media({media,title,onComplete,isCompleted}){
 export default function LessonReader({id,focus,setFocus,go}){
   const a=useApp(),l=a.school.lessons.find(x=>x.id===id);
   const ps=l?periodsOf(l):[];
-  const [selected,S]=useState(ps.find(p=>p.unlocked)?.id||ps[0]?.id),[answers,A]=useState({}),[size,Z]=useState('medium'),[theme,T]=useState('paper'),[showResult,R]=useState(false);
+  const [selected,S]=useState(ps.find(p=>p.unlocked)?.id||ps[0]?.id),[answers,A]=useState({}),[size,Z]=useState('medium'),[theme,T]=useState('paper'),[showResult,R]=useState(false),[showReview,setShowReview]=useState(false);
   const p=ps.find(p=>p.id===selected)||ps[0];
 
-  useEffect(()=>{A({});R(false)},[selected,id]);
+  useEffect(()=>{A({});R(false);setShowReview(false);},[selected,id]);
 
   useEffect(()=>{
     if(!p?.unlocked)return;
@@ -306,62 +306,176 @@ export default function LessonReader({id,focus,setFocus,go}){
                     ))}
                   </div>
 
-                  {qs.map((q,i)=>(
-                    <div className="quiz-question" id={'quiz-q-'+q.id} key={q.id}>
-                      <div className="q-header">
-                        <h3>{i+1}. {q.text}</h3>
-                        {q.level&&<span className={`q-level ${q.level==='Vận dụng'?'high':q.level==='Thông hiểu'?'med':'low'}`}>{q.level}</span>}
-                      </div>
-                      <div className="options">
-                        {q.options.map((o,j)=>(
-                          <button
-                            key={j}
-                            disabled={a.busy||!allowed}
-                            className={answers[q.id]===j?'chosen':''}
-                            onClick={()=>{A({...answers,[q.id]:j});R(false)}}
-                          >
-                            <span>{'ABCD'[j]}</span>
-                            {o}
-                          </button>
-                        ))}
-                      </div>
-                      {showResult&&last&&(
-                        <div className="answer-feedback-card">
-                          <p className="answer-note">
-                            <b>Đáp án đúng: {'ABCD'[last.feedback.find(x=>x.id===q.id)?.correct]}</b> · {last.feedback.find(x=>x.id===q.id)?.explanation}
-                          </p>
+                  {qs.map((q,i)=>{
+                    const studentAns = answers[q.id] !== undefined ? answers[q.id] : last?.answers?.[q.id];
+                    const fb = last?.feedback?.find(x => x.id === q.id);
+                    const correctIdx = fb?.correct !== undefined ? fb.correct : (q.correct !== undefined ? q.correct : null);
+                    const explanation = fb?.explanation || q.explanation;
+                    const isEvaluated = (showResult || showReview) && Boolean(last) && correctIdx !== null;
+                    const isCorrect = isEvaluated && studentAns === correctIdx;
+
+                    return (
+                      <div className={`quiz-question ${isEvaluated ? (isCorrect ? 'evaluated-correct' : 'evaluated-wrong') : ''}`} id={'quiz-q-'+q.id} key={q.id}>
+                        <div className="q-header">
+                          <div className="q-title-wrap">
+                            <span className="q-num-badge">Câu {i+1}</span>
+                            <h3>{q.text}</h3>
+                          </div>
+                          <div className="q-meta-tags">
+                            {q.level&&<span className={`q-level ${q.level==='Vận dụng'?'high':q.level==='Thông hiểu'?'med':'low'}`}>{q.level}</span>}
+                            {isEvaluated&&(
+                              <span className={`q-eval-badge ${isCorrect?'eval-pass':'eval-fail'}`}>
+                                {isCorrect ? '✓ Đúng (+1.0 đ)' : '✗ Chưa đúng (0 đ)'}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        <div className="options">
+                          {q.options.map((o,j)=>{
+                            let optClass = '';
+                            if (isEvaluated) {
+                              if (j === correctIdx && studentAns === j) {
+                                optClass = 'chosen-correct';
+                              } else if (j === correctIdx) {
+                                optClass = 'is-correct-target';
+                              } else if (studentAns === j) {
+                                optClass = 'chosen-wrong';
+                              } else {
+                                optClass = 'neutral-opt';
+                              }
+                            } else if (answers[q.id] === j) {
+                              optClass = 'chosen';
+                            }
+
+                            return (
+                              <button
+                                key={j}
+                                disabled={a.busy || (!allowed && !isEvaluated)}
+                                className={`option-btn ${optClass}`}
+                                onClick={()=>{
+                                  if (isEvaluated && !allowed) return;
+                                  A({...answers,[q.id]:j});
+                                  R(false);
+                                  setShowReview(false);
+                                }}
+                              >
+                                <span className="opt-letter">{'ABCD'[j]}</span>
+                                <span className="opt-text">{o}</span>
+                                {isEvaluated && j === correctIdx && (
+                                  <span className="opt-tag tag-correct">✓ Đáp án đúng</span>
+                                )}
+                                {isEvaluated && studentAns === j && j !== correctIdx && (
+                                  <span className="opt-tag tag-wrong">✗ Em đã chọn</span>
+                                )}
+                                {isEvaluated && studentAns === j && j === correctIdx && (
+                                  <span className="opt-tag tag-user-correct">✓ Chính xác</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {isEvaluated&&(
+                          <div className={`answer-feedback-card ${isCorrect ? 'feedback-pass' : 'feedback-fail'}`}>
+                            <div className="feedback-card-top">
+                              <div className="feedback-answer-indicator">
+                                <span className="indicator-label">Đáp án chuẩn:</span>
+                                <b className="indicator-key">Phương án {'ABCD'[correctIdx]}</b>
+                              </div>
+                              <span className={`feedback-score-pill ${isCorrect ? 'pill-green' : 'pill-amber'}`}>
+                                {isCorrect ? '✓ Ghi nhận 1.0 điểm' : '⚠️ Cần ôn lại kiến thức này'}
+                              </span>
+                            </div>
+                            {explanation&&(
+                              <div className="feedback-explanation-body">
+                                <div className="explanation-title">
+                                  <Lightbulb size={16}/>
+                                  <span>Đáp án gợi ý & Giải thích chi tiết:</span>
+                                </div>
+                                <p className="explanation-text">{explanation}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
 
                   <div className="quiz-submit-bar">
                     <div className="quiz-submit-info">
                       <span>Đã chọn: <b>{Object.keys(answers).length}/{qs.length}</b> câu</span>
                       {Object.keys(answers).length<qs.length&&<small>Em cần trả lời đầy đủ 10 câu để nộp bài.</small>}
                     </div>
-                    <button
-                      className="primary quiz-submit-btn"
-                      disabled={a.busy||!allowed||qs.some(q=>answers[q.id]===undefined)}
-                      onClick={async()=>{
-                        try{
-                          await a.act('periodQuiz',{lessonId:id,periodId:p.id,answers});
-                          R(true);
-                        }catch{}
-                      }}
-                    >
-                      <CheckCircle2 size={18}/> Nộp bài 10 câu củng cố (+20% tiến độ)
-                    </button>
+                    <div className="quiz-actions-row">
+                      {last && (
+                        <button
+                          type="button"
+                          className="secondary quiz-toggle-btn"
+                          onClick={()=>setShowReview(!showReview)}
+                        >
+                          <Lightbulb size={16}/>
+                          <span>{showReview || showResult ? 'Ẩn gợi ý' : '💡 Xem đáp án gợi ý & giải thích'}</span>
+                        </button>
+                      )}
+                      <button
+                        className="primary quiz-submit-btn"
+                        disabled={a.busy||!allowed||qs.some(q=>answers[q.id]===undefined)}
+                        onClick={async()=>{
+                          try{
+                            await a.act('periodQuiz',{lessonId:id,periodId:p.id,answers});
+                            R(true);
+                            setShowReview(true);
+                          }catch{}
+                        }}
+                      >
+                        <CheckCircle2 size={18}/> Nộp bài 10 câu củng cố (+20% tiến độ)
+                      </button>
+                    </div>
                   </div>
 
                   {last&&(
-                    <div className="quiz-result" role="status">
-                      <div className="quiz-result-header">
-                        <b>Kết quả củng cố: {last.score}/10 điểm</b>
-                        <span className="badge-pct">+20% tiến độ hoàn thành</span>
+                    <div className={`quiz-result-card ${passed?'is-passed':'is-retry'}`} role="status">
+                      <div className="result-top-banner">
+                        <div className="result-score-circle">
+                          <span className="score-val">{last.score}</span>
+                          <span className="score-max">/10</span>
+                        </div>
+                        <div className="result-text-group">
+                          <h3>{passed ? '🎉 Chúc mừng em đã hoàn thành củng cố kiến thức!' : '💡 Em cần ôn tập lại để đạt điểm chuẩn'}</h3>
+                          <p>
+                            {passed
+                              ? 'Em đã nắm vững nội dung bài học và mở khoá 20% tiến độ hoàn thành bài học.'
+                              : `Cần đạt tối thiểu ${p.quiz.passScore}/10 điểm. Hãy đọc kĩ đáp án gợi ý và giải thích chi tiết cho từng câu hỏi bên dưới.`}
+                          </p>
+                          <div className="result-meta-info">
+                            <span>Số lượt đã làm: <b>{record.attempts.length}</b>{p.quiz.maxAttempts ? `/${p.quiz.maxAttempts}` : ''}</span>
+                            <span>· Điểm cao nhất: <b>{Math.max(...record.attempts.map(x=>x.score))}/10 điểm</b></span>
+                          </div>
+                        </div>
                       </div>
-                      <p>{passed?'🎉 Em đã đạt yêu cầu củng cố kiến thức! Chúc mừng em đã nhận 20% tiến độ.':'Hãy đọc lại phần kiến thức trọng tâm và thử làm lại để cải thiện điểm số.'}</p>
-                      <small>Đã thực hiện {record.attempts.length} lượt làm bài củng cố.</small>
+                      <div className="result-action-bar">
+                        <button
+                          type="button"
+                          className="secondary btn-show-explanations"
+                          onClick={()=>setShowReview(!showReview)}
+                        >
+                          <Lightbulb size={16}/>
+                          <span>{showReview || showResult ? 'Thu gọn gợi ý giải thích' : '💡 Xem chi tiết đáp án & gợi ý giải thích'}</span>
+                        </button>
+                        {allowed&&(
+                          <button
+                            type="button"
+                            className="secondary btn-retry-quiz"
+                            onClick={()=>{
+                              A({});
+                              R(false);
+                              setShowReview(false);
+                            }}
+                          >
+                            <RotateCcw size={16}/> Làm lại bài củng cố
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </section>

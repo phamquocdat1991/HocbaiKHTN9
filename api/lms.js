@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
-import {initialSchool} from '../src/content.js';
+import {initialSchool,questions as defaultQuestions} from '../src/content.js';
+import {lessonQuestionsMap} from '../src/lesson-questions.js';
 import {newUser,mutate,gradeUser} from '../src/domain.js';
 import {validateAccount,changeRole} from '../src/accounts.js';
 import {config,configured as isConfigured,identity as lookupIdentity,read,commit,allUsers,createAccount,resetPassword} from '../server/supabase.js';
@@ -13,7 +14,7 @@ const e=config();const configured=isConfigured();if(req.method==='GET')return re
 const raw=typeof req.body==='string'?JSON.parse(req.body):req.body; if(JSON.stringify(raw).length>2000000)throw fail(413,'Dữ liệu gửi quá lớn.');const {action,payload:p={}}=raw||{};
 const bearer=req.headers.authorization?.replace(/^Bearer /,'');if(!bearer)throw fail(401,'Cần đăng nhập.');const identity=await lookupIdentity(bearer);
 const admin=identity.emailVerified&&String(process.env.ADMIN_EMAIL||'phamquocdat1991@gmail.com').toLowerCase()===identity.email?.toLowerCase();
-let [sd,ud]=await Promise.all([read('school/main'),read('users/'+identity.localId)]);let s=sd?.value||initialSchool(),u=ud?.value||newUser(identity.localId,identity.displayName||identity.email.split('@')[0]);u.isAdmin=!!admin;u.email=identity.email;u.role=admin||ud?.value.role==='teacher'?'teacher':'student';const teacher=u.role==='teacher';
+let [sd,ud]=await Promise.all([read('school/main'),read('users/'+identity.localId)]);let s=sd?.value||initialSchool(),u=ud?.value||newUser(identity.localId,identity.displayName||identity.email.split('@')[0]);if(!Array.isArray(s.questions)||s.questions.length<510){const map=new Map((s.questions||[]).map(q=>[q.id,q]));for(const q of defaultQuestions){if(!map.has(q.id))map.set(q.id,q);}s.questions=Array.from(map.values());}for(const l of s.lessons){if(!l.questions||l.questions.length<10){l.questions=lessonQuestionsMap[l.id]||defaultQuestions.filter(q=>q.lessonId===l.id);}}u.isAdmin=!!admin;u.email=identity.email;u.role=admin||ud?.value.role==='teacher'?'teacher':'student';const teacher=u.role==='teacher';
 if(action==='state'){if(!sd||!ud)await commit([...(!sd?[{path:'school/main',value:s,old:sd}]:[]),...(!ud?[{path:'users/'+u.id,value:u,old:ud}]:[])]);return res.status(200).json({school:sanitize(s,u),user:publicUser(u),users:teacher?await allUsers():[]})}
 
 if(['createAccount','resetAccount','setRole'].includes(action)){
